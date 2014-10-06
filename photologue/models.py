@@ -337,19 +337,29 @@ class GalleryUpload(models.Model):
                     logger.debug('File "{0}" is empty.'.format(filename))
                     continue
 
-                title = ' '.join([self.title, str(count)])
+                ## Use filename modified to being photo title.
+                title = os.path.splitext(filename)[0].replace("."," ").replace("-"," ").replace("_"," ").title()
                 slug = slugify(title)
 
                 try:
                     Photo.objects.get(slug=slug)
-                    logger.warning('Did not create photo "{0}" with slug "{1}" as a photo with that '
-                                   'slug already exists.'.format(filename, slug))
-                    if getattr(self, 'request', None):
-                        messages.warning(self.request,
-                                         _('Did not create photo "%(filename)s" with slug "{1}" as a photo with that '
-                                           'slug already exists.').format(filename, slug),
-                                         fail_silently=True)
-                    continue
+
+                    ## If filename already exists, try using gallery name.
+                    ## If this fails, there is failure.
+                    title = ' '.join([gallery.title, str(count)])
+                    slug = slugify(title)
+                    try:
+                        Photo.objects.get(slug=slug)
+                        logger.warning('Did not create photo "{0}" with slug "{1}" as a photo with that '
+                                       'slug already exists.'.format(filename, slug))
+                        if getattr(self, 'request', None):
+                            messages.warning(self.request,
+                                             _('Did not create photo "%(filename)s" with slug "{1}" as a photo with that '
+                                               'slug already exists.').format(filename, slug),
+                                             fail_silently=True)
+                        continue
+                    except Photo.DoesNotExist:
+                        pass
                 except Photo.DoesNotExist:
                     pass
 
